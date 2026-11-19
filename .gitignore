@@ -1,0 +1,10 @@
+# Build outputs — the .hnmod ships only as a release asset, never committed.
+target/
+mixins/locator_heads/engine/target/
+mixins/locator_heads/engine/Cargo.lock
+*.so
+*.hnmod
+*.hmod
+# Editor / OS artefacts.
+.DS_Store
+*.swp

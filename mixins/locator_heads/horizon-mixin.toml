@@ -1,0 +1,132 @@
+[mod]
+id = "locator_heads"
+version = "1.0.0"
+priority = 100
+
+# Pinned: the HUD adapter reads the game's own state, which the hook
+# points' helpers don't offer — the loaded player mobs and their teams,
+# the last frame's camera (`locator_camera`), and the GUI atlas's
+# `object_skins` for the players' skin sprites. So the mod is made for
+# this one commit; README.md, "Hook points and pins", lists what and why.
+# The `gui_layer_post` hook itself is a hook point (API 139), declared
+# per injection below via `hook` / `hook_version`, and in the packaged
+# manifest as `hooks = 139` (a legitimate optional Manifest field, not
+# an unknown key). Note the mod id uses an underscore: the validator
+# (`valid_id`) allows only [a-z0-9_], so `locator-heads` was rejected.
+[compatibility]
+horizon_revision = "ac874422ed8f892505ff73d67ae486ecfee7a516"
+
+# The mod's own logic: bearings, the bar layout, the compass, the
+# filter and the settings. No dependencies.
+[[crate]]
+id = "engine"
+path = "engine"
+
+# Before the contextual bar layer is drawn: hide it — background,
+# level number and vanilla dots — exactly when the locator bar is the
+# current bar, so the post hook redraws it with heads in place of the
+# dots. A hook point (API 139), like the post hook; `canceled` is the
+# target's own parameter, as `ran` is for the command hook below.
+[[injection]]
+id = "layer_pre"
+hook = "gui_layer_pre"
+hook_version = 1
+kind = "HEAD"
+helper = "layer_pre.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "layer", ty = "&str", value = "layer" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+# After the contextual bar layer (the locator bar's background, or the
+# experience bar) is drawn: the heads sit on the bar, the compass above
+# it. A hook point (API 139), so this injection names the hook, not a
+# target.
+[[injection]]
+id = "layer"
+hook = "gui_layer_post"
+hook_version = 1
+kind = "HEAD"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "layer", ty = "&str", value = "layer" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# Every decoded play packet, first: the waypoints the server tracks
+# and the player list, for heads past loaded range. The native API
+# delivers each packet here as it arrives (`handle_packet`), the same
+# shape the autologin mod uses. The packets are observed only; the
+# handler never sends, blocks or rewrites one.
+[[injection]]
+id = "packet"
+kind = "HEAD"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+helper = "packet.rs"
+bindings = [
+  { name = "packet", ty = "&horizon_protocol::packets::play::Clientbound", value = "&packet" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# The mod's own commands: /locatorheads and /lh (status, toggle, the
+# filter lists). A hook point (API 1).
+[[injection]]
+id = "command"
+hook = "command"
+hook_version = 1
+kind = "HEAD"
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+# The command names, for the chat's command list. A hook point (API 1).
+[[injection]]
+id = "commands"
+hook = "commands"
+hook_version = 1
+kind = "HEAD"
+helper = "commands.rs"
+bindings = [
+  { name = "commands", ty = "&mut Vec<&'static str>", value = "&mut *commands" },
+]
+
+# Hook points: the row in Options > Mods and its settings page.
+[[injection]]
+id = "list"
+hook = "mods"
+hook_version = 1
+kind = "HEAD"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+[[injection]]
+id = "settings"
+hook = "settings"
+hook_version = 1
+kind = "HEAD"
+helper = "settings.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "buttons", ty = "&mut Vec<String>", value = "&mut *buttons" },
+]
+
+[[injection]]
+id = "click"
+hook = "settings_click"
+hook_version = 1
+kind = "HEAD"
+helper = "click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "button", ty = "usize", value = "button" },
+]

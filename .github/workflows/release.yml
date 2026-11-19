@@ -1,0 +1,44 @@
+name: Release
+# Builds the release file from source and attaches it to the release
+# for the tag. Every v* tag ships the .hnmod (Starling):
+# a source-only zip built with pure Python; the game build happens
+# in Starling, not here. Same shape as horizon-autologin's release
+# workflow (which also builds its .hmod job in the same file).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach the build to"
+        required: true
+        default: "v1.0.0"
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-hnmod:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 tools/package.py
+      - run: python3 tools/check_bundle.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          body: |
+            Horizon Locator Heads 1.0.0 — player heads on the locator bar for Horizon/Starling, an independent Rust reimplementation of Haage001's Locator Heads (Fabric, LGPL-3.0); no Java source was copied. The head-rendering concept is credited in the original to MCRcortex. This implementation's own code is MIT licensed.
+
+            - Heads from the server's TrackedWaypoint packets plus loaded player mobs, so a head replaces the vanilla dot at every distance.
+            - The vanilla dots are suppressed while the locator bar shows; the background, level number, non-player waypoint dots and pitch arrows are redrawn with the game's own code.
+            - Heads only draw when the locator bar is the current bar — they vanish for ~5 s while the XP bar shows, exactly like the original. On a server that never sends waypoint packets, no heads ever show, exactly like the original there.
+            - Distance scaling matches vanilla's waypoint style defaults (near 128, far 332 blocks): full size up to 128 blocks, shrinking to 5/9 at 332 blocks.
+            - Compass (cardinal or coordinates notation, shadow toggle), team/static borders with `/lh bordercolor <hex>`, names Off/Always/Looking-at/Player-list with tint and slide-in, include/exclude filters, `/lh` commands.
+
+            Starling 0.8.0, game 26.3, pinned to Horizon/Starling revision ac874422ed. `.hnmod` only — Starling 0.8.0 cannot load .hmod files.
+
+            Install: delete any old `locator-heads-1.0.0.hnmod` from the phone first, install this one and Compile. Same version as the build before it, so if the row still shows the old build, do the two-compile swap — compile once with the mod off, then enable the row and compile again. Builds are only distinguishable by file hash: sha256 `107a97a227eaedc0265d93187d46d7c7cb6770e3276d6f00b4b16649c00e7db3`.
+          files: target/*.hnmod
