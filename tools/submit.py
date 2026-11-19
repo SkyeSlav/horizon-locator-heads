@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Compile the packaged `.hnmod` on the user's own Starling build server
-(kara-box) and download the built library.
+"""Compile the packaged `.hnmod` on a Starling build server and download
+the built library.
 
-Usage: python3 tools/submit.py [--server URL] [--version V]
+Usage: python3 tools/submit.py --server URL [--version V]
 
-The server speaks: POST /v1/build?version=V with each mod as its length
-(4 bytes, big-endian) and its file; GET /v1/job/ID for the state;
-GET /v1/job/ID/lib for the library. Prints the job id and the built
-library's size and sha256, and saves it to target/.
+The server address is not stored in this repo: pass --server, or set
+HORIZON_BUILD_SERVER. The server speaks: POST /v1/build?version=V with
+each mod as its length (4 bytes, big-endian) and its file;
+GET /v1/job/ID for the state; GET /v1/job/ID/lib for the library. Prints
+the job id and the built library's size and sha256, and saves it to target/.
 """
 import hashlib
 import json
+import os
 import struct
 import sys
 import time
@@ -19,7 +21,6 @@ import urllib.error
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SERVER = "https://8787-agq3ej7hk3etn2c3sruyrryuhy.instabox.tech"
 DEFAULT_VERSION = "0.8.0"
 
 
@@ -30,7 +31,7 @@ def get(server, path):
 
 def main():
     args = sys.argv[1:]
-    server = DEFAULT_SERVER
+    server = os.environ.get("HORIZON_BUILD_SERVER")
     version = DEFAULT_VERSION
     while args:
         if args[0] == "--server":
@@ -39,6 +40,8 @@ def main():
             version, args = args[1], args[2:]
         else:
             raise SystemExit(f"unknown argument: {args[0]}")
+    if not server:
+        raise SystemExit("no build server: pass --server URL or set HORIZON_BUILD_SERVER")
     hnmod = sorted((ROOT / "target").glob("locator-heads-*.hnmod"))
     if not hnmod:
         raise SystemExit("no packaged .hnmod in target/: run tools/package.py first")
