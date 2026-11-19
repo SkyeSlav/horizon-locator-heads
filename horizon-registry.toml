@@ -1,0 +1,10 @@
+# Supplies name, summary, description, authors and license for the
+# registry entry (other keys are refused). Lives at the repo root in the
+# newest release tag.
+name = "Horizon Locator Heads"
+summary = "Player heads on the locator bar instead of coloured dots."
+description = """Horizon Locator Heads puts every other player on the server on the locator bar as their head instead of a coloured dot. Heads slide along the bar as you turn and shrink with distance the same way vanilla does, and work for far away players too, not just ones close by.
+
+It comes with a compass overlay, team or custom coloured borders, names that can show always, when looking at a player, or while the player list is open, and include/exclude filters by name."""
+authors = ["SkyeSlav"]
+license = "MIT"
